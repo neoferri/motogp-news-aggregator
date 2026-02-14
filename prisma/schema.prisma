@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SourceType {
+  rss
+  youtube
+}
+
+enum ItemType {
+  article
+  video
+}
+
+model Source {
+  id        Int        @id @default(autoincrement())
+  name      String
+  type      SourceType
+  url       String     @unique
+  lang      String     @db.VarChar(5)
+  enabled   Boolean    @default(true)
+  createdAt DateTime   @default(now()) @map("created_at")
+  items     Item[]
+
+  @@map("sources")
+}
+
+model YoutubeChannel {
+  channelId     String   @id @map("channel_id")
+  title         String
+  rssUrl        String   @map("rss_url")
+  lastFetchedAt DateTime? @map("last_fetched_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  items         Item[]
+
+  @@map("youtube_channels")
+}
+
+model Item {
+  id            Int       @id @default(autoincrement())
+  type          ItemType
+  title         String
+  url           String
+  canonicalUrl  String?   @map("canonical_url")
+  excerpt       String?
+  publishedAt   DateTime? @map("published_at")
+  fetchedAt     DateTime  @default(now()) @map("fetched_at")
+  lang          String    @db.VarChar(5)
+  sourceId      Int       @map("source_id")
+  channelId     String?   @map("channel_id")
+  externalId    String?   @map("external_id")
+  thumbnailUrl  String?   @map("thumbnail_url")
+  hash          String    @unique
+
+  source  Source          @relation(fields: [sourceId], references: [id])
+  channel YoutubeChannel? @relation(fields: [channelId], references: [channelId])
+
+  @@index([publishedAt])
+  @@index([sourceId])
+  @@index([lang])
+  @@index([type])
+  @@map("items")
+}
+
+model GlobalSetting {
+  key   String @id
+  value String
+
+  @@map("global_settings")
+}
